@@ -15,6 +15,11 @@ mergeInto(LibraryManager.library, {
   // here is better than a truck that silently never moves.
   // THE BROWSER'S OFFSET FROM UTC, in minutes: ChartHud's wall clock is UTC plus this - DateTime.Now made
   // IL2CPP load the time-zone database on the first frame (108 ms of Unity's start at 4x CPU, measured in a named profile).
+  // THE ADMIN FLAG (kanban #1092): the page's window.ARENA_ADMIN, set only after its ?admin= code checked against the page's hash
+  ArenaIsAdmin: function () {
+    try { return window.ARENA_ADMIN === true ? 1 : 0; } catch (e) { return 0; }
+  },
+
   ArenaLocalOffsetMinutes: function () {
     return -new Date().getTimezoneOffset();
   },

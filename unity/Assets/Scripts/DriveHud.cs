@@ -291,6 +291,8 @@ public class DriveHud : MonoBehaviour
     /// </summary>
     void DrawPractice(int w, int h)
     {
+        // ONLY FOR AN ADMIN (kanban #1092): the page's confirmed flag, AdminFlag
+        if (!Arena.AdminFlag.On) return;
         float pad = Mathf.Max(10f, h * 0.025f);
         int min = Mathf.Min(w, h);
         // Wide enough for the subtitle to sit on ONE line. At 30% of a phone's
@@ -3351,6 +3353,7 @@ public class DriveHud : MonoBehaviour
         var kb = UnityEngine.InputSystem.Keyboard.current;
         if (kb != null && kb.f1Key.wasPressedThisFrame) showDiagnostics = !showDiagnostics;
         CleanHud.Poll();
+        Arena.AdminFlag.Poll();
 
         // THE SOUND THE ASSAULT ASKED FOR. The watch counts the calls it wants; this plays one per call and
         // never more, so a frame that sees two declarations is two horns and a frame that sees none is silent.
