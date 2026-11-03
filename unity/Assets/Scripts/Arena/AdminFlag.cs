@@ -23,6 +23,7 @@ namespace Arena
         public static bool On { get; private set; }
 
         static float _askedAt = -10f;
+        static bool _said;
 
         /// <summary>Called once a frame by DriveHud.Update: asks the page once a second, and keeps practice off for a player who is not admin.</summary>
         public static void Poll()
@@ -32,7 +33,7 @@ namespace Arena
                 _askedAt = Time.unscaledTime;
                 bool on;
                 try { on = ArenaIsAdmin() == 1; } catch { on = false; }
-                if (on != On) { On = on; Debug.Log($"[admin] {(on ? "admin: PRACTICE shown" : "not admin: PRACTICE hidden and off")}"); }
+                if (on != On || !_said) { On = on; _said = true; Debug.Log($"[admin] {(on ? "admin: PRACTICE shown" : "not admin: PRACTICE hidden and off")}"); }
             }
             if (!On && PracticeMode.On) PracticeMode.Withdraw();
         }
