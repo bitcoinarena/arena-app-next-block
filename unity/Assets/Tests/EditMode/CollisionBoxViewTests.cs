@@ -13,7 +13,7 @@ using Arena;
 /// </summary>
 public class CollisionBoxViewTests
 {
-    static string Core(string rel) => File.ReadAllText(Path.Combine(Application.dataPath, "../../packages/nextblock/src", rel));
+    static string Core(string rel) => File.ReadAllText(Path.Combine(Application.dataPath, "../../src", rel));
 
     [Test]
     public void TheBodyHeightIsTheCoresOwn()
