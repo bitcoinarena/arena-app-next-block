@@ -48,6 +48,9 @@ namespace Arena
 
         public static void Toggle() { On = !On; Source = "player"; }
 
+        /// <summary>Off for a player who is not admin (AdminFlag, kanban #1092): the box is not drawn and nothing turns it on.</summary>
+        public static void Withdraw() { On = false; Source = "not admin"; }
+
         /// <summary>
         /// Sets the starting state, in order of authority.
         ///
