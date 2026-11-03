@@ -46,6 +46,14 @@ public class CollisionBoxViewTests
     }
 
     [Test]
+    public void TheMinersPinkBoxesAreNotDrawn()
+    {
+        Assert.IsTrue(CollisionBoxView.Shown(-7497318), "the post office at x -114.4 keeps its boxes");
+        Assert.IsFalse(CollisionBoxView.Shown(11075584), "the miner at x 169 is not drawn (#1089)");
+        Assert.IsFalse(CollisionBoxView.Shown(0), "the centre line belongs to the miner");
+    }
+
+    [Test]
     public void TheBridgeCopiesTheCoresSolidsAndNotUnitysColliders()
     {
         var lib = File.ReadAllText(Path.Combine(Application.dataPath, "Plugins/WebGL/arena.jslib"));

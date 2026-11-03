@@ -32,6 +32,12 @@ namespace Arena
         /// <summary>Which building a box belongs to: the post office stands west of the centre line, the miner east.</summary>
         public static Color ColourOf(int cx) => cx < 0 ? PostOffice : Miner;
 
+        /// <summary>
+        /// THE PINK MARKERS ARE GONE (2026-11-03, kanban #1089: "remove the pink collision markers"): the miner's boxes,
+        /// east of the centre line, are no longer drawn. The post office keeps its cyan boxes.
+        /// </summary>
+        public static bool Shown(int cx) => cx < 0;
+
         readonly int[] _words = new int[6 * 256];
         int[] _drawn = new int[0];
         int _epoch = int.MinValue;
@@ -90,6 +96,7 @@ namespace Arena
                 int yLow = _words[o + 4], yHigh = _words[o + 5];
                 int floor = Mathf.RoundToInt(ArenaCore.SurfaceAt(cx / ONE, cz / ONE) * ONE);
                 if (!TruckCanHit(yLow, yHigh, floor)) continue;
+                if (!Shown(cx)) continue;
                 drawn++;
                 var lo = new Vector3((cx - hx) / ONE, yLow / ONE, (cz - hz) / ONE);
                 var hi = new Vector3((cx + hx) / ONE, yHigh / ONE, (cz + hz) / ONE);
@@ -106,20 +113,7 @@ namespace Arena
             _mesh.SetIndices(edges, MeshTopology.Lines, 1);
             _mesh.RecalculateBounds();
             Debug.Log($"[collision] the core holds {n} boxes; {drawn} the truck can hit are drawn "
-                      + $"({CountWest(n)} post office, {drawn - CountWest(n)} miner)");
-        }
-
-        int CountWest(int n)
-        {
-            int k = 0;
-            const float ONE = ArenaCore.ONE;
-            for (int i = 0; i < n; i++)
-            {
-                int o = i * 6;
-                int floor = Mathf.RoundToInt(ArenaCore.SurfaceAt(_words[o] / ONE, _words[o + 1] / ONE) * ONE);
-                if (_words[o] < 0 && TruckCanHit(_words[o + 4], _words[o + 5], floor)) k++;
-            }
-            return k;
+                      + "(post office only; the miner's are not drawn, #1089)");
         }
 
         static readonly int[] Quads =
