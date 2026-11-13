@@ -102,8 +102,11 @@
     ent = ARENACLIENT.decodeEntryContract(await bytesOf(`${base}/entry?id=${entry}`));
     beacon = await bytesOf(`${base}/randomness?round=${round}`);
   } catch (e) { say(`the run cannot be read: ${e.message}`); return; }
-  await new Promise((ok, no) => { const s = document.createElement('script'); s.src = `${base}/replay/core.js?round=${round}`; s.onload = ok; s.onerror = () => no(new Error('the core that round names')); document.head.appendChild(s); })
-    .catch((e) => { say(`${base} serves no ${e.message}`); throw e; });
+  // THE CORE SCRIPT ONLY EVER FROM THIS SEAT (kanban #1877, #1489 r9 play-1): this page runs in this seat's origin - the origin of
+  // /Dashboard/owner, which keeps the owner's seed in localStorage - so a script from the committee peer that answered the run (any seat of
+  // it, a byzantine one too) would run there. The run's data may come from a peer; the code that steps it comes from here or not at all.
+  await new Promise((ok, no) => { const s = document.createElement('script'); s.src = `${here}/replay/core.js?round=${round}`; s.onload = ok; s.onerror = () => no(new Error('the core that round names')); document.head.appendChild(s); })
+    .catch((e) => { say(`this seat serves no ${e.message}`); throw e; });
   const R = window.NEXTBLOCK_REPLAY || window.BLWP_REPLAY, CORE = R.CORE, L = R.layout, ONE = R.ONE;
 
   // STEP THE WHOLE RUN ONCE, keeping what the map draws at every tick.
