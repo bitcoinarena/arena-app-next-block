@@ -79,8 +79,11 @@
   // THIS NODE is the origin AND the path it is published under: an advertised endpoint may carry one
   // (wss://host/node-a), and location.origin alone would ask the host's root, which is not this node.
   const here = location.origin + location.pathname.replace(/\/replay\/?$/, '');
-  const tryJson = async (url) => { try { const r = await fetch(url); return r.ok ? await r.json() : null; } catch (e) { return null; } };
-  const bytesOf = async (url) => { const r = await fetch(url); if (!r.ok) throw new Error(`${url}: ${r.status} ${await r.text()}`); return new Uint8Array(await r.arrayBuffer()); };
+  // EACH SEAT'S ASK IS BOUNDED (kanban #2583, the #1508 rule secureTranscript keeps - NODE_WAIT_MS): one committee seat that takes the
+  // request and never answers no longer holds the replay page; the next seat is asked
+  const NODE_WAIT_MS = 8000;
+  const tryJson = async (url) => { try { const r = await fetch(url, { signal: AbortSignal.timeout(NODE_WAIT_MS) }); return r.ok ? await r.json() : null; } catch (e) { return null; } };
+  const bytesOf = async (url) => { const r = await fetch(url, { signal: AbortSignal.timeout(NODE_WAIT_MS) }); if (!r.ok) throw new Error(`${url}: ${r.status} ${await r.text()}`); return new Uint8Array(await r.arrayBuffer()); };
 
   // THE NODE THAT HOLDS THE RUN: this one first, then the round's committee endpoints.
   const others = ((await tryJson(`${here}/replay/nodes?round=${round}`)) || { endpoints: [] }).endpoints.filter((u) => u !== here);
