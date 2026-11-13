@@ -667,6 +667,7 @@ public class Bootstrap : MonoBehaviour
         RenderSettings.fogMode = FogMode.ExponentialSquared;
         RenderSettings.fogDensity = 0.0022f;
         RenderSettings.fogColor = new Color(0.58f, 0.64f, 0.72f);
+        if (!SkylineSky.Install()) Debug.LogWarning("[sky] the skyline did not load: the default sky stays");
 
         if (postProfile != null)
         {

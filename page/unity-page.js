@@ -207,7 +207,7 @@ const NB_NEXT = nbHost('arena-bal-split', 'after'), NB_WARN = nbHost('arena-lobb
         for (const n of nodes || []) {
           // THE STABLE NAMES FIRST (2026-09-26 13:28): a quick tunnel's name dies on its next start, so the copied link
           // names the nodes' stable https bases when they answer any, and the round's advertised endpoints only when not
-          try { const r = await fetch(`${String(n).replace(/\/+$/, '')}/replay/nodes?round=${roundHex}`); if (r.ok) { const j = await r.json(); return (j.stable && j.stable.length ? j.stable : j.endpoints) || []; } }
+          try { const r = await fetch(`${String(n).replace(/\/+$/, '')}/replay/nodes?round=${roundHex}`, { signal: AbortSignal.timeout(8000) }); if (r.ok) { const j = await r.json(); return (j.stable && j.stable.length ? j.stable : j.endpoints) || []; } }
           catch (e) { /* the next node */ }
         }
         return [];

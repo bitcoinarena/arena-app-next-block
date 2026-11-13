@@ -14,16 +14,36 @@ public static class CleanHud
 {
     public static bool On { get; private set; }
 
+    static bool _asked, _fromQuery;
+    static SplashScreen _splash;
+
+    /// <summary>?hud=0 on the page's address cleans the screen for camera shots on a device with no keyboard (kanban #955). The title
+    /// screen stays usable: the lobby reads no rounds while the clean screen is on, so it holds only while the title screen is down.</summary>
+    public static void FromQuery(string hud) { if (hud == "0") _fromQuery = true; }
+
+    static void Set(bool on)
+    {
+        if (on == On) return;
+        On = on;
+        Arena.DailyLobby.HudClean(on);
+    }
+
     /// <summary>Called once a frame by DriveHud.Update.</summary>
     public static void Poll()
     {
+        if (!_asked) { _asked = true; FromQuery(Arena.ArenaCore.QueryParam("hud")); }
+        if (_fromQuery)
+        {
+            if (_splash == null) _splash = Object.FindFirstObjectByType<SplashScreen>();
+            Set(_splash == null || !_splash.Showing);
+        }
 #if ENABLE_INPUT_SYSTEM
         var k = UnityEngine.InputSystem.Keyboard.current;
         if (k == null || !k.hKey.wasPressedThisFrame || !k.shiftKey.isPressed) return;
 #else
         if (!Input.GetKeyDown(KeyCode.H) || !(Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))) return;
 #endif
-        On = !On;
-        Arena.DailyLobby.HudClean(On);
+        _fromQuery = false;                              // the key decides from here on
+        Set(!On);
     }
 }
