@@ -212,7 +212,7 @@ public class DriveHud : MonoBehaviour
         // would be to say less rather than to say it smaller.
         {
             string longest = bay != null && bay.IsLoaded
-                ? $"CARGO  {bay.Count} parcels  ·  {LoadoutPanel.BtcLabel(bay.BtcCarried)}" : "CARGO  empty";
+                ? $"CARGO  {LoadoutPanel.Parcels(bay.Count)}  ·  {LoadoutPanel.BtcLabel(bay.BtcCarried)}" : "CARGO  empty";
             string tailNow = runScore == null
                 ? $"{gate.Runs} runs delivered"
                 : $"best {CoreScoreFactors.Points(runScore.Best)}  ·  {gate.Runs} runs  ·  {gate.SatsDelivered:N0} sat";
@@ -266,7 +266,7 @@ public class DriveHud : MonoBehaviour
             Shadowed(Row(score.fontSize * 1.25f), $"SCORE  {CoreScoreFactors.Points(pending)}", score, tint);
 
             Shadowed(Row(under.fontSize * 1.5f), bay.IsLoaded
-                         ? $"CARGO  {bay.Count} parcels  ·  {LoadoutPanel.BtcLabel(bay.BtcCarried)}"
+                         ? $"CARGO  {LoadoutPanel.Parcels(bay.Count)}  ·  {LoadoutPanel.BtcLabel(bay.BtcCarried)}"
                          : "CARGO  empty",
                      under, bay.IsLoaded ? Color.white : new Color(1f, 1f, 1f, 0.6f));
         }

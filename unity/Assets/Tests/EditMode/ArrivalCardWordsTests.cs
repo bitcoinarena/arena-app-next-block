@@ -297,7 +297,7 @@ public class ArrivalCardWordsTests
     [Test]
     public void TheLoadoutsLoadIsTheCoresCargoFactorNotTheBedFill()
     {
-        Assert.AreEqual("×0.70000", LoadoutPanel.LoadLabel(45875));
+        Assert.AreEqual("×0.70", LoadoutPanel.LoadLabel(45875));
         Assert.AreEqual("0.70000", CoreScoreFactors.Cargo(45875).ToString("0.00000", CultureInfo.InvariantCulture),
             "the panel and the card print C to the same decimals");
         string src = System.IO.File.ReadAllText(System.IO.Path.Combine(Application.dataPath, "Scripts/Cargo/LoadoutPanel.cs"));
@@ -308,7 +308,7 @@ public class ArrivalCardWordsTests
             "the bed's changes are not declared to the core");
         StringAssert.Contains("Arena.ArenaCore.SubmitLoad(bay.FeeCarried, bay.BtcHundredths, bay.VsizeList)", src, "the load carries the bed's vsizes");
         StringAssert.DoesNotContain("$\"×{Mathf.Clamp01(bay.Fill):0.00}\"", src, "the bed fill is printed as the LOAD factor again");
-        StringAssert.Contains("of {CargoBay.BtcLimit:0.##} BTC", src, "the gauge reads the BTC on board against the truck's limit");
+        StringAssert.Contains("of max {CargoBay.BtcLimit:0.##} BTC", src, "the gauge reads the BTC on board against the most one truck carries (kanban #2888)");
     }
 
     /// <summary>
@@ -399,6 +399,74 @@ public class ArrivalCardWordsTests
         StringAssert.Contains("pageEntry: (typeof window !== 'undefined' && window.ARENA_ENTRY) || null,", lib);
         StringAssert.Contains("if (n && n.pageEntry && typeof window !== 'undefined' && window.ARENA_ENTRY && window.ARENA_ENTRY !== n.pageEntry) return 1;", lib);
         StringAssert.Contains("&& window.ARENA_ENTRY !== Module.arenaNet.pageEntry) {", lib);
+    }
+
+    // kanban #2897 (feedback #125): one parcel on board read "1 parcels"
+    [Test]
+    public void OneParcelIsSingular()
+    {
+        Assert.AreEqual("1 parcel", LoadoutPanel.Parcels(1));
+        Assert.AreEqual("0 parcels", LoadoutPanel.Parcels(0));
+        Assert.AreEqual("5 parcels", LoadoutPanel.Parcels(5));
+        string hud = System.IO.File.ReadAllText(System.IO.Path.Combine(Application.dataPath, "Scripts/DriveHud.cs"));
+        string panel = System.IO.File.ReadAllText(System.IO.Path.Combine(Application.dataPath, "Scripts/Cargo/LoadoutPanel.cs"));
+        StringAssert.DoesNotContain("{bay.Count} parcels", hud + panel, "a count of parcels is written without Parcels()");
+    }
+
+    // kanban #2888 (feedback #114): a tile with more BTC than the truck can still take says so instead of FILLS, by TryAdd's own rule
+    [Test]
+    public void ATileOverTheTrucksBtcLimitIsNotOfferedAsLoadable()
+    {
+        Assert.IsTrue(LoadoutPanel.OverBtcLimit(0, 91.1));
+        Assert.IsFalse(LoadoutPanel.OverBtcLimit(0, 2.55));
+        Assert.IsTrue(LoadoutPanel.OverBtcLimit(18, 2.55), "the limit counts what is on board");
+        Assert.IsFalse(LoadoutPanel.OverBtcLimit(0, 20.0), "exactly the limit fits, as in CargoBay.TryAdd");
+        Assert.AreEqual("OVER 20 BTC", LoadoutPanel.OverBtcHead);
+        var bay = new GameObject("bay").AddComponent<CargoBay>();
+        try
+        {
+            var whale = new MempoolFeed.Tx { txid = "w", valueSats = 9_110_000_000L, feeSats = 900, vsize = 300 };
+            Assert.AreEqual(LoadoutPanel.OverBtcLimit(bay.BtcCarried, whale.Btc), !bay.TryAdd(whale), "the head and the bay agree");
+        }
+        finally { Object.DestroyImmediate(bay.gameObject); }
+        string panel = System.IO.File.ReadAllText(System.IO.Path.Combine(Application.dataPath, "Scripts/Cargo/LoadoutPanel.cs"));
+        StringAssert.Contains("FILLS = room on the truck", panel, "the hint says what FILLS counts");
+        StringAssert.Contains("% full  ·  {BtcShort(bay.BtcCarried)} of max {CargoBay.BtcLimit:0.##} BTC", panel);
+    }
+
+    // kanban #2896 (feedback #124): a German browser wrote "0,5198926 BTC" and "2,2 sat/vB" in the tooltip; the client writes one format
+    [Test]
+    public void NumbersAreWrittenOneWayWhateverTheBrowsersLanguage()
+    {
+        var was = CultureInfo.CurrentCulture; var wasUi = CultureInfo.CurrentUICulture;
+        try
+        {
+            CultureInfo.CurrentCulture = new CultureInfo("de-DE");
+            Assert.AreEqual("0,5", $"{0.5:0.0}", "the German culture writes a comma - the case the fix is for");
+            Bootstrap.OneNumberFormat();
+            Assert.AreEqual("0.5198926 BTC", $"{0.5198926:0.########} BTC");
+            Assert.AreEqual("2.2 sat/vB", $"{2.2f:0.0} sat/vB");
+            Assert.AreEqual("$33,455.09", $"${33455.09:N2}");
+            Assert.AreEqual("-1.97% 24h", $"{-1.97:+0.00;-0.00;0.00}% 24h");
+        }
+        finally { CultureInfo.DefaultThreadCurrentCulture = null; CultureInfo.DefaultThreadCurrentUICulture = null; CultureInfo.CurrentCulture = was; CultureInfo.CurrentUICulture = wasUi; }
+    }
+
+    // kanban #2892 (feedback #120): "BEARS ASSAULT" stood over "GATE"; the gate's word steps under the banners when they share its row
+    [Test]
+    public void TheGatesWordStepsUnderTheBanners()
+    {
+        var banners = new Rect(300f, 102f, 120f, 15f);
+        var gate = new Rect(330f, 100f, 30f, 15f);
+        var moved = ChartHud.GateUnderBanners(gate, banners);
+        Assert.AreEqual(0f, ChartHud.Shared(moved, banners));
+        Assert.AreEqual(banners.yMax + 1f, moved.y);
+        var apart = new Rect(100f, 100f, 30f, 15f);
+        Assert.AreEqual(apart, ChartHud.GateUnderBanners(apart, banners), "a gate clear of the banners stays");
+        Assert.AreEqual(gate, ChartHud.GateUnderBanners(gate, new Rect()), "no banners, no move");
+        string src = System.IO.File.ReadAllText(System.IO.Path.Combine(Application.dataPath, "Scripts/ChartHud.cs"));
+        StringAssert.Contains("if (f.OpenPlaced) Text(f.OpenBox, \"OPEN\", Axis, _text);", src, "an OPEN with no free place is written over the others again");
+        StringAssert.Contains("if (placedObj) Text(box, o.Text, o.Colour, _text);", src);
     }
 }
 

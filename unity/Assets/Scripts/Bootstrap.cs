@@ -15,6 +15,21 @@ using UnityEngine.Rendering.Universal;
 /// </summary>
 public class Bootstrap : MonoBehaviour
 {
+    /// <summary>
+    /// ONE NUMBER FORMAT (kanban #2896, feedback #124: in a German browser the tooltips read "value 0,26821812", "fee rate 2,2 sat/vB",
+    /// "$33.455,09", "-1,97 % 24h" beside the tiles' "0.268 BTC"): the WebGL player takes the browser's culture for every format that names
+    /// none. The client writes numbers one way, the page's (en: a decimal point, a comma between thousands), whatever the browser's language.
+    /// </summary>
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    public static void OneNumberFormat()
+    {
+        var one = System.Globalization.CultureInfo.InvariantCulture;
+        System.Globalization.CultureInfo.DefaultThreadCurrentCulture = one;
+        System.Globalization.CultureInfo.DefaultThreadCurrentUICulture = one;
+        System.Globalization.CultureInfo.CurrentCulture = one;
+        System.Globalization.CultureInfo.CurrentUICulture = one;
+    }
+
     [Header("Optional imported models")]
     public GameObject truckModel;
     public GameObject wheelModel;

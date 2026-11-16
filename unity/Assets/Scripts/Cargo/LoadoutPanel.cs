@@ -325,9 +325,13 @@ public class LoadoutPanel : MonoBehaviour
             // the score. "Stake" was multiplayer vocabulary for a mechanic
             // this build does not have - nobody deposits anything here.
             int share = bay != null ? Mathf.RoundToInt(bay.ShareOf(c.tx) * 100f) : 0;
+            // TOO MUCH BTC FOR THIS TRUCK (kanban #2888, feedback #114: a 91.1 BTC tile read "FILLS 16%" beside "0 BTC of 20 BTC" and could
+            // not be loaded): its head says why, in grey, instead of what it would fill
+            bool overBtc = !c.loaded && bay != null && OverBtcLimit(bay.BtcCarried, c.tx.Btc);
             _cap.normal.textColor = c.loaded ? new Color(0.45f, 0.95f, 0.6f)
+                                  : overBtc ? new Color(0.62f, 0.62f, 0.62f)
                                              : new Color(1f, 0.85f, 0.35f);
-            string head = c.loaded ? "ON BOARD" : $"FILLS {share}%";
+            string head = c.loaded ? "ON BOARD" : overBtc ? OverBtcHead : $"FILLS {share}%";
             var headStyle = new GUIStyle(_cap);
             headStyle.fontSize = Mathf.Min(headStyle.fontSize, Mathf.Max(8, Mathf.RoundToInt(box.height * 0.40f)));
             DriveHud.FitLine(headStyle, head, box.width - 6f, 8);
@@ -466,7 +470,7 @@ public class LoadoutPanel : MonoBehaviour
         };
         hint.normal.textColor = new Color(1f, 1f, 1f, 0.6f);
         GUI.Label(new Rect(panel.x, bar.yMax + 3f, panel.width, hint.fontSize * 1.7f),
-                  "Tap to load  ·  tap again to unload  ·  hover for details", hint);
+                  $"FILLS = room on the truck  ·  max {CargoBay.BtcLimit:0.##} BTC a truck  ·  tap to load or unload", hint);
 
         PanelSkin.Corners(panel, PanelSkin.Gold);
     }
@@ -599,6 +603,15 @@ public class LoadoutPanel : MonoBehaviour
         return System.Math.Round(btc, decimals).ToString("0.########", System.Globalization.CultureInfo.InvariantCulture) + " BTC";
     }
 
+    /// <summary>The head of a crate the truck cannot take for its BTC (kanban #2888).</summary>
+    public static string OverBtcHead => $"OVER {CargoBay.BtcLimit:0.##} BTC";
+
+    /// <summary>True when a parcel of <paramref name="btc"/> would take the load over the truck's BTC limit - CargoBay.TryAdd's own rule.</summary>
+    public static bool OverBtcLimit(double carried, double btc) => carried + btc > CargoBay.BtcLimit + 1e-9;
+
+    /// <summary>"1 parcel", "0 parcels", "5 parcels" (kanban #2897, feedback #125: one parcel on board read "1 parcels").</summary>
+    public static string Parcels(int n) => n == 1 ? "1 parcel" : $"{n} parcels";
+
     /// <summary>A parcel's or a load's BTC, as a block explorer writes it: up to eight decimals, no trailing zeros.</summary>
     public static string BtcLabel(double btc) =>
         btc.ToString("0.########", System.Globalization.CultureInfo.InvariantCulture) + " BTC";
@@ -632,7 +645,9 @@ public class LoadoutPanel : MonoBehaviour
               refused ? new Color(1f, 0.35f, 0.3f)
                       : Color.Lerp(new Color(0.3f, 0.75f, 0.45f), new Color(1f, 0.78f, 0.2f), bay.Fill),
               refused ? "TRUCK  —  FULL"
-                      : $"TRUCK  {Mathf.RoundToInt(bay.Fill * 100f)}%  ·  {BtcShort(bay.BtcCarried)} of {CargoBay.BtcLimit:0.##} BTC  ·  {bay.Count} parcels",
+                      // WHAT EACH NUMBER COUNTS (kanban #2888, feedback #114: "0 BTC of 20 BTC" beside a 91.1 BTC tile, and FILLS read against
+                      // the tile's BTC): the % is the bed's room taken, the BTC is what is on board against the most one truck carries
+                      : $"TRUCK  {Mathf.RoundToInt(bay.Fill * 100f)}% full  ·  {BtcShort(bay.BtcCarried)} of max {CargoBay.BtcLimit:0.##} BTC  ·  {Parcels(bay.Count)}",
               _small);
 
         // --- risk -----------------------------------------------------------
@@ -745,5 +760,6 @@ public class LoadoutPanel : MonoBehaviour
 
     /// <summary>The panel's LOAD number: the core's C (S_CARGO on the 1e-5 grid), to the five decimals the card prints.</summary>
     public static string LoadLabel(int cargoWord) =>
-        "×" + CoreScoreFactors.Cargo(cargoWord).ToString("0.00000", System.Globalization.CultureInfo.InvariantCulture);
+        // TWO DECIMALS, AS DANGER (kanban #2896, feedback #124: "LOAD x0.22499 shows 5 decimals unexplained"); the result card keeps the core's five
+        "×" + CoreScoreFactors.Cargo(cargoWord).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture);
 }

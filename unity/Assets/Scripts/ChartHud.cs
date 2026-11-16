@@ -672,6 +672,13 @@ public class ChartHud : MonoBehaviour
 
     static string B(Rect r) => $"{r.x:0.0},{r.y:0.0},{r.width:0.0},{r.height:0.0}";
 
+    /// <summary>The gate's word box, moved under <paramref name="banners"/> when the two share area (kanban #2892); else as it was.</summary>
+    public static Rect GateUnderBanners(Rect gate, Rect banners)
+    {
+        if (gate.width <= 0f || banners.width <= 0f || Shared(gate, banners) <= 0f) return gate;
+        return new Rect(gate.x, banners.yMax + 1f, gate.width, gate.height);
+    }
+
     /// <summary>The area, in px, that two boxes share; 0 when they do not touch.</summary>
     public static float Shared(Rect a, Rect b)
     {
@@ -826,6 +833,9 @@ public class ChartHud : MonoBehaviour
         // the gate's label box, known before LOW is placed off it
         if (f.GateOn) f.GateBox = new Rect(f.GateX - 34f, p.y, _text.CalcSize(new GUIContent("GATE")).x, lh);
         else if (f.GatePinned) { float gw = _text.CalcSize(new GUIContent(GateWord(f))).x; f.GateBox = new Rect(f.GateX - gw - 2f, p.y, gw, lh); }
+        // UNDER THE BANNERS (kanban #2892, feedback #120: "BEARS ASSAULT" over "GATE" on a phone's chart): the banners stand at the plot's top
+        // right, the gate's word at the top of its line - where they share the row, the word steps under the banners
+        f.GateBox = GateUnderBanners(f.GateBox, f.BannerBox);
 
         // HIGH and LOW are not written on the chart (2026-09-17 12:55: "HIGH/LOW central on screen not on the chart"):
         // their candles keep a 4 px tick, and since 2026-09-19 13:10 the words are drawn nowhere at all.
@@ -853,8 +863,8 @@ public class ChartHud : MonoBehaviour
         }
 
         // 6. the gate, gold
-        if (f.GateOn) { Box(new Rect(f.GateX - 1f, p.y, 2f, p.height), Gold); f.GateLineBox = new Rect(f.GateX - 1f, p.y, 2f, p.height); Text(new Rect(f.GateX - 34f, p.y, 34f, lh), "GATE", Gold, _text); }
-        else if (f.GatePinned) { Box(new Rect(f.GateX - 1f, p.y, 2f, p.height), Gold); f.GateLineBox = new Rect(f.GateX - 1f, p.y, 2f, p.height); Text(new Rect(f.GateBox.x, p.y, f.GateBox.width + 2f, lh), GateWord(f), Gold, _text); }
+        if (f.GateOn) { Box(new Rect(f.GateX - 1f, p.y, 2f, p.height), Gold); f.GateLineBox = new Rect(f.GateX - 1f, p.y, 2f, p.height); Text(new Rect(f.GateX - 34f, f.GateBox.y, 34f, lh), "GATE", Gold, _text); }
+        else if (f.GatePinned) { Box(new Rect(f.GateX - 1f, p.y, 2f, p.height), Gold); f.GateLineBox = new Rect(f.GateX - 1f, p.y, 2f, p.height); Text(new Rect(f.GateBox.x, f.GateBox.y, f.GateBox.width + 2f, lh), GateWord(f), Gold, _text); }
 
         // THE OPEN LABEL, off the header and off the labels already on the plot. Measured on 0.0.1459: drawn above its line at
         // the plot's left edge it shared 429 px of box and 246 drawn pixels with the price row ("$78,515.00 +0.00%") and
@@ -865,17 +875,19 @@ public class ChartHud : MonoBehaviour
                                        Mathf.Max(f.You.x + 4f, tickEnd.x + 1f), Mathf.Max(f.You.y + 4f, tickEnd.y + 1f));
         string youWord = f.YouOn ? "YOU" : "YOU " + PinArrow;
         f.YouBox = PlaceYouLabel(p, f.You, f.YouMarkBox, _text.CalcSize(new GUIContent(youWord)).x, lh,
-                                 new[] { f.SymbolBox, f.PriceBox, f.LegendBox, f.HighBox, f.LowBox, f.GateBox }, out f.YouPlaced);
+                                 new[] { f.SymbolBox, f.PriceBox, f.LegendBox, f.HighBox, f.LowBox, f.GateBox, f.BannerBox }, out f.YouPlaced);
         float ow = _text.CalcSize(new GUIContent("OPEN")).x;
-        f.OpenBox = PlaceOpen(p, f.OpenY, ow, lh, new[] { f.SymbolBox, f.PriceBox, f.LegendBox, f.YouMarkBox, f.YouBox, f.HighBox, f.LowBox, f.GateBox }, out f.OpenPlaced);
-        Text(f.OpenBox, "OPEN", Axis, _text);
+        f.OpenBox = PlaceOpen(p, f.OpenY, ow, lh, new[] { f.SymbolBox, f.PriceBox, f.LegendBox, f.YouMarkBox, f.YouBox, f.HighBox, f.LowBox, f.GateBox, f.BannerBox }, out f.OpenPlaced);
+        // A WORD WITH NO FREE PLACE IS NOT WRITTEN (kanban #2892, feedback #120: "LOW" over "OPEN", "YOU" over "HIGH" on a phone's small chart):
+        // its line, dot or tick stays; only YOU, the player's own truck, is written wherever it lands
+        if (f.OpenPlaced) Text(f.OpenBox, "OPEN", Axis, _text);
 
         // 5. ghosts: the dot where the core maps the other truck, its id label clear of the chrome. Measured before the rule:
         // the id drawn right of its dot ran over GATE's label and line and past the plot onto the last-price tag.
         f.GhostDotBoxes.Clear(); f.GhostLabelBoxes.Clear(); f.GhostSlots.Clear();
         foreach (var g in f.Ghosts) f.GhostDotBoxes.Add(new Rect(g.At.x - 3f, g.At.y - 3f, 6f, 6f));
         var taken = new List<Rect> { f.SymbolBox, f.PriceBox, f.LegendBox, f.OpenBox, f.YouBox, f.YouMarkBox, f.HighBox, f.LowBox,
-                                     f.GateBox, f.GateLineBox, f.LastTagBox };
+                                     f.GateBox, f.GateLineBox, f.LastTagBox, f.BannerBox };
         taken.AddRange(f.GhostDotBoxes);
         for (int i = 0; i < f.Ghosts.Count; i++)
         {
@@ -888,9 +900,9 @@ public class ChartHud : MonoBehaviour
             f.GhostSlots.Add(GhostSlotReport(p, g.At, gw, lh, taken.ToArray(), slotNames.ToArray()));
             f.GhostLabelBoxes.Add(label);
             if (!placed) f.GhostsUnplaced++;
-            taken.Add(label);
+            if (placed) taken.Add(label);
             Box(f.GhostDotBoxes[i], g.Colour);
-            Text(label, g.Text, g.Colour, _text);
+            if (placed) Text(label, g.Text, g.Colour, _text);   // kanban #2892: no free place, no word over another
         }
 
         // 6. THE OBJECTIVES (WAR_TACTICS.md §4.11, §0 row O4: "the client draws HIGH, LOW and OPEN at the core's points
@@ -906,9 +918,9 @@ public class ChartHud : MonoBehaviour
             float ow2 = _text.CalcSize(new GUIContent(o.Text)).x;
             var box = PlaceGhostLabel(p, o.At, ow2, lh, taken.ToArray(), out bool placedObj);
             f.ObjectiveBoxes.Add(box);
-            taken.Add(box);
+            if (placedObj) taken.Add(box);
             Box(new Rect(o.At.x - 3f, o.At.y - 3f, 6f, 6f), o.Colour);
-            Text(box, o.Text, o.Colour, _text);
+            if (placedObj) Text(box, o.Text, o.Colour, _text);   // kanban #2892: no free place, no word over another
             if (!placedObj) f.ObjectivesUnplaced++;
         }
 
