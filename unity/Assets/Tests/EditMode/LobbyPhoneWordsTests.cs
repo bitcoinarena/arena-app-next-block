@@ -17,7 +17,7 @@ public class LobbyPhoneWordsTests
     public void TheHeader_FullFirst_ThenTheSameNumbersInFewerWords_ThenRounds()
     {
         var w = DailyLobby.HeaderWordings(new[] { Paid(), Paid() });
-        CollectionAssert.AreEqual(new[] { "ROUNDS · JOIN NEEDS 5 OF 7 SIGNER NODES", "ROUNDS · 5 OF 7 SIGNER NODES", "ROUNDS · 5 OF 7 NODES", "ROUNDS" }, w);
+        CollectionAssert.AreEqual(new[] { "ROUNDS · 5 OF 7 REFEREES SIGN EACH RESULT", "ROUNDS · 5 OF 7 REFEREES", "ROUNDS · 5 OF 7", "ROUNDS" }, w);
         Assert.AreEqual(DailyLobby.HeaderWords(new[] { Paid() }), DailyLobby.HeaderWordings(new[] { Paid() })[0], "the wide screen reads as before");
         CollectionAssert.AreEqual(new[] { "ROUNDS" }, DailyLobby.HeaderWordings(new LobbyRow[0]));
     }
@@ -26,11 +26,11 @@ public class LobbyPhoneWordsTests
     public void ARow_KeepsItsWordings_ThenTheNodesAsACount_ThenTheTimesAlone()
     {
         var w = DailyLobby.RowWords(Paid());
-        Assert.AreEqual("PAID · 100 sats · starts in 0:28 · join until 1:00 · 7 signer nodes (5 needed)", w[2], "the third wording is unchanged");
-        Assert.AreEqual("PAID · 100 sats · starts in 0:28 · join until 1:00 · 7 nodes", w[3]);
-        Assert.AreEqual("PAID · 100 sats · starts in 0:28 · join until 1:00", w[4]);
-        Assert.AreEqual("PAID · 100 sats · starts in 0:28 · join until 0:00 · entry closed", DailyLobby.RowWords(Paid(joinable: false, leftS: 0))[3]);
-        Assert.AreEqual("PAID · 100 sats · starts in 0:28 · join until 1:00 · 1 node", DailyLobby.RowWords(Paid(agree: 1))[3]);
+        Assert.AreEqual("PAID · 100 sats · starts in 0:28 · open to join for 1:00 · 7 referees ready (5 needed)", w[2], "the third wording is unchanged");
+        Assert.AreEqual("PAID · 100 sats · starts in 0:28 · open to join for 1:00 · 7 referees", w[3]);
+        Assert.AreEqual("PAID · 100 sats · starts in 0:28 · open to join for 1:00", w[4]);
+        Assert.AreEqual("PAID · 100 sats · starts in 0:28 · open to join for 0:00 · entry closed", DailyLobby.RowWords(Paid(joinable: false, leftS: 0))[3]);
+        Assert.AreEqual("PAID · 100 sats · starts in 0:28 · open to join for 1:00 · 1 referee", DailyLobby.RowWords(Paid(agree: 1))[3]);
     }
 
     [Test]
@@ -38,8 +38,8 @@ public class LobbyPhoneWordsTests
     {
         var w = DailyLobby.HintWordings(Paid(agree: 6), 1);
         Assert.AreEqual(DailyLobby.HintWords(Paid(agree: 6), 1), w[0], "the wide screen reads as before");
-        Assert.AreEqual("PLAY joins round c71ee776 - 6 signer nodes agree (5 needed)", w[0]);
-        Assert.AreEqual("PLAY joins c71ee776 - 6 agree (5 needed)", w[1]);
+        Assert.AreEqual("PLAY joins round c71ee776 - 6 referees ready, 5 needed", w[0]);
+        Assert.AreEqual("PLAY joins c71ee776 - 6 ready, 5 needed", w[1]);
         Assert.AreEqual("PLAY joins round c71ee776", w[2]);
         CollectionAssert.AreEqual(new[] { "PLAY waits for an open round", "PLAY waits for a round" }, DailyLobby.HintWordings(null, 0));
     }

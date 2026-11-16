@@ -283,7 +283,7 @@ namespace Arena
             string one = paid ?? free;
             var list = new System.Collections.Generic.List<string> { full };
             if (paid != null && free != null) list.Add($"ROUNDS · PAID {paid} · FREE {free}");
-            else if (one != null && one.Contains(" OF ")) { list.Add($"ROUNDS · {one} SIGNER NODES"); list.Add($"ROUNDS · {one} NODES"); }
+            else if (one != null && one.Contains(" OF ")) { list.Add($"ROUNDS · {one} REFEREES"); list.Add($"ROUNDS · {one}"); }
             list.Add("ROUNDS");
             return list.ToArray();
         }
@@ -294,11 +294,11 @@ namespace Arena
             string paid = KindNumbers(rows, false), free = KindNumbers(rows, true);
             // "SIGNER NODES" follows the paid numbers only when they read "N OF M" (plan 430: "PAID: PER ROUND", "PAID: 5 NEEDED")
             if (paid != null && free != null)
-                return paid.Contains(" OF ") ? $"ROUNDS · PAID: {paid} SIGNER NODES · FREE: {free}" : $"ROUNDS · PAID: {paid} · FREE: {free}";
+                return paid.Contains(" OF ") ? $"ROUNDS · PAID: {paid} REFEREES SIGN · FREE: {free}" : $"ROUNDS · PAID: {paid} · FREE: {free}";
             string one = paid ?? free;
-            if (one == "PER ROUND") return "ROUNDS · SIGNER NODES PER ROUND";
-            if (one.EndsWith(" NEEDED")) return $"ROUNDS · JOIN NEEDS {one.Substring(0, one.Length - " NEEDED".Length)} SIGNER NODES";
-            return $"ROUNDS · JOIN NEEDS {one} SIGNER NODES";
+            if (one == "PER ROUND") return "ROUNDS · REFEREES PER ROUND";
+            if (one.EndsWith(" NEEDED")) return $"ROUNDS · {one.Substring(0, one.Length - " NEEDED".Length)} REFEREES SIGN EACH RESULT";
+            return $"ROUNDS · {one} REFEREES SIGN EACH RESULT";
         }
 
         /// <summary>One kind's numbers over its rows: "5 OF 7", "5 NEEDED" (no committee size), "PER ROUND" (rows differ), or null (none of that kind).</summary>
@@ -317,20 +317,20 @@ namespace Arena
 
         /// <summary>
         /// THE LINE UNDER THE ROUNDS (follow-up): only the round PLAY joins, in its row's words - "PLAY joins round c71ee776 -
-        /// 7 signer nodes agree (5 needed)". Without a round to join: "PLAY waits for a round whose signer nodes agree" (never
+        /// 7 signer nodes agree (5 needed)". Without a round to join: "PLAY waits for a round with enough referees" (never
         /// "both"), or "PLAY waits for an open round" when nothing is listed.
         /// </summary>
         public static string HintWords(LobbyRow r, int listed) => r != null
-            ? $"PLAY joins round {ShortId(r.id)} - {r.agree} signer {(r.agree == 1 ? "node agrees" : "nodes agree")} ({r.needed} needed)"
-            : listed > 0 ? "PLAY waits for a round whose signer nodes agree" : "PLAY waits for an open round";
+            ? $"PLAY joins round {ShortId(r.id)} - {r.agree} {(r.agree == 1 ? "referee" : "referees")} ready, {r.needed} needed"
+            : listed > 0 ? "PLAY waits for a round with enough referees" : "PLAY waits for an open round";
 
         /// <summary>
         /// THE SAME LINE, LONGEST FIRST, FOR A PHONE (measured on UI 134 at 360 px: "ʼLAY joins round 9efb418b - 6 signer
         /// nodes agree (5 needed" - cut at both ends): the full line, then the numbers in fewer words, then the round alone.
         /// </summary>
         public static string[] HintWordings(LobbyRow r, int listed) => r != null
-            ? new[] { HintWords(r, listed), $"PLAY joins {ShortId(r.id)} - {r.agree} agree ({r.needed} needed)", $"PLAY joins round {ShortId(r.id)}" }
-            : new[] { HintWords(r, listed), listed > 0 ? "PLAY waits for agreement" : "PLAY waits for a round" };
+            ? new[] { HintWords(r, listed), $"PLAY joins {ShortId(r.id)} - {r.agree} ready, {r.needed} needed", $"PLAY joins round {ShortId(r.id)}" }
+            : new[] { HintWords(r, listed), listed > 0 ? "PLAY waits for referees" : "PLAY waits for a round" };
 
         public static string ShortId(string id) => string.IsNullOrEmpty(id) ? "" : (id.Length > 8 ? id.Substring(0, 8) : id);
 
@@ -753,7 +753,8 @@ namespace Arena
             // NEVER A ROUND LENGTH (2026-10-04 11:25Z: "closes 1:57" on a 90 s round). The countdown is the ENTRY's,
             // so the row says when the round starts and until when it can be joined, from the page's startS and leftS; an older
             // page sends no startS (-1) and the row then says only "join until".
-            string join = r.leftS >= 0 ? $"join until {r.leftS / 60}:{r.leftS % 60:00}" : "entry open";
+            // A LATE JOIN IS ALLOWED, SAID AS SUCH (kanban #2889, feedback #116: "join until 1:18" beside "starts in 0:46" read as an error)
+            string join = r.leftS >= 0 ? $"open to join for {r.leftS / 60}:{r.leftS % 60:00}" : "open to join";
             string left = r.startS > 0 ? $"starts in {r.startS / 60}:{r.startS % 60:00} · {join}"
                 : r.startS == 0 ? $"started · {join}"
                 : join;
@@ -761,7 +762,8 @@ namespace Arena
             // round are signer nodes, and the players in it have joined. "7 signer nodes (5 needed)", not "7 of 5".
             // A ROUND WHOSE ENTRY HAS CLOSED SAYS SO rather than "waiting" (the page no longer offers it: measured, "closes 0:00"
             // with PLAY enabled for 237 s behind a silent signer node).
-            string nodes = $"{r.agree} signer {(r.agree == 1 ? "node" : "nodes")} ({r.needed} needed)";
+            // THE NODES THAT CHECK AND SIGN THE ROUND ARE ITS REFEREES to a player (kanban #2889, feedback #116/#127: "7 agree (5 needed)" unexplained)
+            string nodes = $"{r.agree} {(r.agree == 1 ? "referee" : "referees")} ready ({r.needed} needed)";
             string signers = r.joinable ? nodes
                 : r.leftS == 0 ? $"{nodes} - entry closed"
                 : $"{nodes} - waiting";
@@ -775,7 +777,7 @@ namespace Arena
                 };
             // AND SHORTER, FOR A PHONE (measured on UI 133 at 390 px: "PAID · 100 sats · starts in 0:28 · join until
             // 1:00 · 7 signer node" - the last wording still too wide, cut): the nodes as a count, then the times alone
-            string few = r.joinable ? $"{r.agree} {(r.agree == 1 ? "node" : "nodes")}" : r.leftS == 0 ? "entry closed" : "waiting";
+            string few = r.joinable ? $"{r.agree} {(r.agree == 1 ? "referee" : "referees")}" : r.leftS == 0 ? "entry closed" : "waiting";
             return new[]
             {
                 $"{kind} · {left} · {signers} · {r.joined} joined · {id}",

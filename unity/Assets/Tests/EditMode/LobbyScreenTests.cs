@@ -232,21 +232,21 @@ public class LobbyScreenTests
         Assert.IsNotNull(s, "the page's lobby view was not read");
         // every form names the stake and the time; the first three the signer nodes too (the shorter ones are a phone's)
         var paidForms = DailyLobby.RowWords(s.rows[1]);
-        for (int i = 0; i < 3; i++) StringAssert.StartsWith("PAID · 100 sats · join until 16:40 · 2 signer nodes (2 needed)", paidForms[i]);
+        for (int i = 0; i < 3; i++) StringAssert.StartsWith("PAID · 100 sats · open to join for 16:40 · 2 referees ready (2 needed)", paidForms[i]);
         foreach (var w in paidForms)
         {
-            StringAssert.StartsWith("PAID · 100 sats · join until 16:40", w, "a form of the paying row does not say its stake");
+            StringAssert.StartsWith("PAID · 100 sats · open to join for 16:40", w, "a form of the paying row does not say its stake");
             // NEVER "SEAT" TO THE PLAYER (2026-09-15 16:22).
             StringAssert.DoesNotContain("seat", w.ToLowerInvariant(), "a lobby row says seat to the player");
         }
         foreach (var w in DailyLobby.RowWords(s.rows[0]))
         {
-            StringAssert.StartsWith("FREE · join until 16:33", w);
+            StringAssert.StartsWith("FREE · open to join for 16:33", w);
             StringAssert.DoesNotContain("sat", w, "a free row names an amount");
             StringAssert.DoesNotContain("seat", w.ToLowerInvariant(), "a lobby row says seat to the player");
         }
         StringAssert.Contains("1 joined", DailyLobby.RowWords(s.rows[0])[1]);
-        Assert.AreEqual("PAID · 1 sat · entry open · 2 signer nodes (2 needed)",
+        Assert.AreEqual("PAID · 1 sat · open to join · 2 referees ready (2 needed)",
             DailyLobby.RowWords(new LobbyRow { free = false, stakeSats = 1, agree = 2, needed = 2, joinable = true })[2]);
     }
 
@@ -261,7 +261,7 @@ public class LobbyScreenTests
         var s = DailyLobby.Parse("{\"mode\":\"lobby\",\"rows\":["
             + "{\"id\":\"58a0072b00\",\"free\":false,\"agree\":7,\"needed\":5,\"joinable\":true,\"leftS\":90,\"startS\":45,\"joined\":0,\"stakeSats\":100}]}");
         Assert.AreEqual(45, s.rows[0].startS, "the page's startS was not read");
-        Assert.AreEqual("PAID · 100 sats · starts in 0:45 · join until 1:30 · 7 signer nodes (5 needed)", DailyLobby.RowWords(s.rows[0])[2]);
+        Assert.AreEqual("PAID · 100 sats · starts in 0:45 · open to join for 1:30 · 7 referees ready (5 needed)", DailyLobby.RowWords(s.rows[0])[2]);
         foreach (var w in DailyLobby.RowWords(s.rows[0])) StringAssert.DoesNotContain("closes", w);
     }
 
@@ -269,9 +269,9 @@ public class LobbyScreenTests
     public void AfterTheStartALateJoinRowSaysStartedAndJoinUntil()
     {
         var late = new LobbyRow { id = "58a0072b00", free = false, stakeSats = 100, agree = 7, needed = 5, joinable = true, leftS = 30, startS = 0 };
-        Assert.AreEqual("PAID · 100 sats · started · join until 0:30 · 7 signer nodes (5 needed)", DailyLobby.RowWords(late)[2]);
+        Assert.AreEqual("PAID · 100 sats · started · open to join for 0:30 · 7 referees ready (5 needed)", DailyLobby.RowWords(late)[2]);
         var free = new LobbyRow { id = "aaaa1111", free = true, agree = 2, needed = 2, joinable = true, leftS = 75, startS = 15 };
-        Assert.AreEqual("FREE · starts in 0:15 · join until 1:15 · 2 signer nodes (2 needed)", DailyLobby.RowWords(free)[2], "a free row reads the same without the price");
+        Assert.AreEqual("FREE · starts in 0:15 · open to join for 1:15 · 2 referees ready (2 needed)", DailyLobby.RowWords(free)[2], "a free row reads the same without the price");
     }
 
     /// <summary>An OLDER PAGE sends no startS: the row says only until when it can be joined - no start, and no countdown that reads like a round length.</summary>
@@ -281,7 +281,7 @@ public class LobbyScreenTests
         var s = DailyLobby.Parse("{\"mode\":\"lobby\",\"rows\":["
             + "{\"id\":\"58a0072b00\",\"free\":false,\"agree\":7,\"needed\":5,\"joinable\":true,\"leftS\":117,\"joined\":0,\"stakeSats\":100}]}");
         Assert.AreEqual(-1, s.rows[0].startS, "no startS from the page is -1, not 0 (0 would say started)");
-        Assert.AreEqual("PAID · 100 sats · join until 1:57 · 7 signer nodes (5 needed)", DailyLobby.RowWords(s.rows[0])[2]);
+        Assert.AreEqual("PAID · 100 sats · open to join for 1:57 · 7 referees ready (5 needed)", DailyLobby.RowWords(s.rows[0])[2]);
         foreach (var w in DailyLobby.RowWords(s.rows[0])) { StringAssert.DoesNotContain("closes", w); StringAssert.DoesNotContain("starts", w); StringAssert.DoesNotContain("started", w); }
     }
 

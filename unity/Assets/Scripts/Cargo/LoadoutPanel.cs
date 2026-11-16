@@ -656,7 +656,7 @@ public class LoadoutPanel : MonoBehaviour
               Color.Lerp(new Color(0.45f, 0.8f, 0.5f), new Color(1f, 0.25f, 0.2f), heat),
               // Short. The explanation used to run onto a second line and
               // straight over the button underneath it.
-              $"HUNTED  {Mathf.RoundToInt(heat * 100f)}%  " +
+              $"ROBBERY RISK  {Mathf.RoundToInt(heat * 100f)}%  " +
               $"{new string('★', Mathf.Clamp(Mathf.CeilToInt(heat * 5f), 0, 5))}",
               _small);
 
@@ -726,7 +726,7 @@ public class LoadoutPanel : MonoBehaviour
         var sub = new GUIStyle(_small) { alignment = TextAnchor.LowerRight };
         sub.normal.textColor = new Color(1f, 1f, 1f, 0.7f);
         GUI.Label(new Rect(rx, fy + _small.fontSize * 1.5f, rw, _small.fontSize * 1.5f),
-                  "you pick LOAD · DANGER and SPEED you earn driving", sub);
+                  "your score · LOAD you pick · DANGER, SPEED you drive", sub);
 
         // --- buttons ---------------------------------------------------------
         // BIGGER TO TAP ON A PHONE (2026-09-29 21:48, CARGO-BTC-2148: AUTO and ROLL OUT were too small
@@ -738,8 +738,8 @@ public class LoadoutPanel : MonoBehaviour
         var btn = new GUIStyle(_btn);
         if (Phone(w, h)) btn.fontSize = Mathf.RoundToInt(Mathf.Max(_btn.fontSize, bh * 0.42f));
         // THE LABELS FIT THE BUTTONS (measured at 390x844 with the bigger font: "NOTHING LOADED" read "THING LOADI")
-        var autoStyle = new GUIStyle(btn); DriveHud.FitLine(autoStyle, "AUTO  (60%)", bw - 12f, 10);
-        if (GUI.Button(new Rect(panel.x + inner, by, bw, bh), "AUTO  (60%)", autoStyle)) Auto();
+        var autoStyle = new GUIStyle(btn); DriveHud.FitLine(autoStyle, "AUTO-FILL 60%", bw - 12f, 10);
+        if (GUI.Button(new Rect(panel.x + inner, by, bw, bh), "AUTO-FILL 60%", autoStyle)) Auto();
 
         GUI.enabled = bay.IsLoaded;
         string go = bay.IsLoaded ? "ROLL OUT" : "NOTHING LOADED";
