@@ -656,7 +656,7 @@ public class LoadoutPanel : MonoBehaviour
               Color.Lerp(new Color(0.45f, 0.8f, 0.5f), new Color(1f, 0.25f, 0.2f), heat),
               // Short. The explanation used to run onto a second line and
               // straight over the button underneath it.
-              $"ROBBERY RISK  {Mathf.RoundToInt(heat * 100f)}%  " +
+              $"ATTACK RISK  {Mathf.RoundToInt(heat * 100f)}%  " +
               $"{new string('★', Mathf.Clamp(Mathf.CeilToInt(heat * 5f), 0, 5))}",
               _small);
 
