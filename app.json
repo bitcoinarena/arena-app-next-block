@@ -10,6 +10,7 @@
     "plugin/nextblock-v4.js",
     "plugin/nextblock-v5.js",
     "plugin/nextblock-v6.js",
-    "plugin/nextblock-v7.js"
+    "plugin/nextblock-v7.js",
+    "plugin/nextblock-v8.js"
   ]
 }
