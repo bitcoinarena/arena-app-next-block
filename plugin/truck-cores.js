@@ -233,6 +233,24 @@ export const TRUCK_8CBC = withAdapter({
   replayFile: new URL('../dist/replay-core-8cbc74b2.js', import.meta.url),
 }, '../frozen/8cbc74b2/adapter.js');
 
+/**
+ * 7d197042, THE APRON LEFT FORWARD FROM ANY DOOR (bitcoin-arena kanban #2911, feedback #191): 8cbc74b2 with one line changed - the score's
+ * apron test measured from START_Z, bay 13's door, for every truck, so since #828 (a door per truck, 6.8 m apart) 17 of the 24 doors stood
+ * outside the 22 m apron at their own start and earned exposure from the first gain. Every door shares START_X; the test reads the run's x
+ * alone, as `rolledOut` does. Frozen like the cores before it; only manifest version 8 names it (tools/sign-manifest-v8.mjs).
+ */
+export const TRUCK_7D19_HASH = '7d1970426bc7146ef2cddcf2d4ad1aa1e53647a9dbef3bc1cfc319aae161fca7';
+const FROZEN_7D19 = fileURLToPath(new URL('../frozen/7d197042', import.meta.url));
+if (coreHashHex(FROZEN_7D19) !== TRUCK_7D19_HASH) throw new Error(`core/frozen/7d197042 hashes to ${coreHashHex(FROZEN_7D19)}, not the core it keeps`);
+export const TRUCK_7D19 = withAdapter({
+  name: `${TRUCK_NAME} (7d197042, the apron left forward from any door)`,
+  hash: TRUCK_7D19_HASH,
+  url: new URL('../frozen/7d197042/adapter.js', import.meta.url).href,
+  root: new URL('../frozen/7d197042/', import.meta.url).href,
+  configs: new Map([[TRUCK_CURRENT_CONFIG, CURRENT_CONFIG], [TRUCK_V3_CONFIG, {}]]),
+  replayFile: new URL('../dist/replay-core-7d197042.js', import.meta.url),
+}, '../frozen/7d197042/adapter.js');
+
 /** Every core nextblock's rounds are replayed by, by hash: 68e2b3d6 (the truck versions 1-4 name) and the four kept installed beside it. */
 export const NEXTBLOCK_CORES = new Map([[TRUCK_68E2_HASH, TRUCK_68E2], [TRUCK_7E21_HASH, TRUCK_7E21], [DE2F_HASH, TRUCK_DE2F],
   [TRUCK_2069_HASH, TRUCK_2069], [TRUCK_BEFORE_FORK_HASH, TRUCK_BEFORE_FORK]]);
@@ -242,6 +260,8 @@ export const NEXTBLOCK_CORES_V3 = new Map([...NEXTBLOCK_CORES, [TRUCK_F0CC_HASH,
 export const NEXTBLOCK_CORES_V5 = new Map([[TRUCK_A5C5_HASH, TRUCK_A5C5], [TRUCK_0847_HASH, TRUCK_0847]]);
 /** THE CORE MANIFEST VERSION 7 NAMES: rounds of versions 1-6 stay on their versions' cores. */
 export const NEXTBLOCK_CORES_V7 = new Map([[TRUCK_8CBC_HASH, TRUCK_8CBC]]);
+/** THE CORE MANIFEST VERSION 8 NAMES (kanban #2911): rounds of versions 1-7 stay on their versions' cores. */
+export const NEXTBLOCK_CORES_V8 = new Map([[TRUCK_7D19_HASH, TRUCK_7D19]]);
 
 /**
  * NEXTBLOCK'S MANIFEST BODY, from this registration (§0A.3): every core above with the configs it plays, a run of at
