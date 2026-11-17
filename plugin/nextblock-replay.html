@@ -79,11 +79,44 @@
   // THIS NODE is the origin AND the path it is published under: an advertised endpoint may carry one
   // (wss://host/node-a), and location.origin alone would ask the host's root, which is not this node.
   const here = location.origin + location.pathname.replace(/\/replay\/?$/, '');
-  // EACH SEAT'S ASK IS BOUNDED (kanban #2583, the #1508 rule secureTranscript keeps - NODE_WAIT_MS): one committee seat that takes the
-  // request and never answers no longer holds the replay page; the next seat is asked
+  // kanban #2027 (#1508, #1868, #1489; replaces #2583's one timer over the whole transfer): EACH SEAT GETS A BOUNDED WAIT, as secureTranscript's NODE_WAIT_MS. One committee seat that
+  // takes the request and never answers held this walk for ever (a bare fetch, no timer) while the next seat held the run. The timer
+  // covers the time to the answer (status and headers); the body is then bounded by a stall (no byte for NODE_WAIT_MS) and a total
+  // of 8 x NODE_WAIT_MS, never by one timer over the whole transfer, so an honest seat still sending on a slow link is not cut off.
+  // A seat over either bound is skipped and the next one is asked. Kept inside this block: the #2027 test runs exactly this text.
   const NODE_WAIT_MS = 8000;
-  const tryJson = async (url) => { try { const r = await fetch(url, { signal: AbortSignal.timeout(NODE_WAIT_MS) }); return r.ok ? await r.json() : null; } catch (e) { return null; } };
-  const bytesOf = async (url) => { const r = await fetch(url, { signal: AbortSignal.timeout(NODE_WAIT_MS) }); if (!r.ok) throw new Error(`${url}: ${r.status} ${await r.text()}`); return new Uint8Array(await r.arrayBuffer()); };
+  const askBounded = async (url, init = {}) => {
+    const ac = new AbortController();
+    let timer, r;
+    const late = new Promise((_, no) => { timer = setTimeout(() => { ac.abort(); no(new Error(`${url}: no answer in ${NODE_WAIT_MS} ms`)); }, NODE_WAIT_MS); });
+    try { r = await Promise.race([late, fetch(url, { ...init, signal: ac.signal })]); }
+    catch (e) { ac.abort(); throw e; }
+    finally { clearTimeout(timer); }
+    const bytes = async () => {
+      let stall, total, cut;
+      const stop = new Promise((_, no) => { cut = (why) => { ac.abort(); no(new Error(`${url}: ${why}`)); }; });
+      const poke = () => { clearTimeout(stall); stall = setTimeout(() => cut(`body stalled for ${NODE_WAIT_MS} ms`), NODE_WAIT_MS); };
+      poke();
+      total = setTimeout(() => cut(`body not read in ${8 * NODE_WAIT_MS} ms`), 8 * NODE_WAIT_MS);
+      const read = (async () => {
+        const reader = r.body && typeof r.body.getReader === 'function' ? r.body.getReader() : null;
+        if (!reader) return new Uint8Array(await r.arrayBuffer());
+        const parts = []; let n = 0;
+        for (;;) { const { done, value } = await reader.read(); if (done) break; poke(); parts.push(value); n += value.length; }
+        const out = new Uint8Array(n); let at = 0;
+        for (const p of parts) { out.set(p, at); at += p.length; }
+        return out;
+      })();
+      try { return await Promise.race([stop, read]); }
+      finally { clearTimeout(stall); clearTimeout(total); }
+    };
+    const text = async () => new TextDecoder().decode(await bytes());
+    // a body nobody reads is cancelled, so a refused answer frees its connection at once
+    const drop = () => { try { const c = r.body && typeof r.body.cancel === 'function' ? r.body.cancel() : null; if (c && c.catch) c.catch(() => {}); } catch (e) { /* nothing to drop */ } };
+    return { ok: r.ok, status: r.status, bytes, text, json: async () => JSON.parse(await text()), drop };
+  };
+  const tryJson = async (url) => { try { const r = await askBounded(url); if (!r.ok) { r.drop(); return null; } return await r.json(); } catch (e) { return null; } };
+  const bytesOf = async (url) => { const r = await askBounded(url); if (!r.ok) throw new Error(`${url}: ${r.status} ${await r.text()}`); return await r.bytes(); };
 
   // THE NODE THAT HOLDS THE RUN: this one first, then the round's committee endpoints.
   const others = ((await tryJson(`${here}/replay/nodes?round=${round}`)) || { endpoints: [] }).endpoints.filter((u) => u !== here);
