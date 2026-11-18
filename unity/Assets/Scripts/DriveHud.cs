@@ -1340,6 +1340,17 @@ public class DriveHud : MonoBehaviour
     /// a block spent hauling 52 sat is a block that cannot be spent hauling
     /// four thousand, and the board compares blocks rather than lifetimes.
     /// </summary>
+    /// <summary>
+    /// THE "THIS RUN" BOX'S CARGO LINE (kanban #2943): while the truck carries cargo, what it carries; once it carries none, what
+    /// was delivered into this block, said as delivered; with neither, an empty truck. Never the delivered sum under "on the truck".
+    /// </summary>
+    public static string ThisRunCargoLine(bool loaded, double carriedBtc, double deliveredBtc)
+    {
+        if (loaded) return $"on the truck: {LoadoutPanel.BtcLabel(carriedBtc)}";
+        if (deliveredBtc > 0) return $"delivered: {LoadoutPanel.BtcLabel(deliveredBtc)}";
+        return "on the truck: nothing";
+    }
+
     void DrawBlock(int w, int h)
     {
         if (block == null) return;
@@ -1382,8 +1393,12 @@ public class DriveHud : MonoBehaviour
         Shadowed(new Rect(pad * 1.5f, y, bw, lh), block.StartsIn ? $"starts in {secs / 60}:{secs % 60:00}" : $"{secs / 60}:{secs % 60:00} left", line,
                  new Color(1f, 1f, 1f, 0.85f));
         y += lh * BlockRows[3];
+        // WHAT IS ON THE TRUCK, NOT WHAT WAS DELIVERED (bitcoin-arena kanban #2943, feedback #273/#275): this line read the block's
+        // delivered BTC (BlockClock.PendingBtc, added only at a drop-off) under the words "on the truck", so a loaded run read
+        // "on the truck: 0 BTC" the whole way - measured 2026-11-18 18:55Z on UI 705: 3.44675514 BTC loaded, the seats 0.13 s
+        // behind with the stake seen by 7 of 7, and the line said 0. Players took it as "the load does not count".
         Shadowed(new Rect(pad * 1.5f, y, bw, lh),
-                 $"on the truck: {LoadoutPanel.BtcLabel(block.PendingBtc)}",
+                 ThisRunCargoLine(bay != null && bay.IsLoaded, bay != null ? bay.BtcCarried : 0, block.PendingBtc),
                  line, Up);
         // `BlockRows[4]` is the pending line's own height - it is counted in
         // the content total but it is not an advance, because the gap to the
