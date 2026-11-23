@@ -866,6 +866,10 @@ public class SplashScreen : MonoBehaviour
         WakeAudio();
         _joinWhy = "";
         _joinedAt = -1f;
+        // THE ROUND THE LINE NAMES (bitcoin-arena kanban #3035): the line under the rows reads Keep(rows, _pickId) - the kept pick, or the
+        // default once it is no longer joinable - while PLAY joined _pickId as the last poll left it, a round already closing ("too late for
+        // this round"). PLAY joins the round the line names.
+        if (_lobby != null) { int k = Arena.DailyLobby.Keep(_lobby.rows, _pickId); _pickId = k >= 0 ? _lobby.rows[k].id : ""; }
         _joining = Arena.DailyLobby.Join(_pickId);
         // the last poll still holds the press before this one: it is not this join's answer
         if (_joining && _lobby != null) _lobby.join = new Arena.LobbyJoin { state = "joining" };
