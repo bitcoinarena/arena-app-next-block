@@ -548,9 +548,12 @@ export function submitSample(st, price) {
   // and the glide's old edge by one offset onto the live level: nothing moves, and the price continues from there.
   if (s[m + MK_SAMPLES] === 0) {
     const d = (p - h[h.length - 1]) | 0;
-    for (let i = 0; i < h.length; i++) h[i] = (h[i] + d) | 0;
-    if (st.roundTape) for (let i = 0; i < st.roundTape.length; i++) st.roundTape[i] = (st.roundTape[i] + d) | 0;
-    for (const w of [MK_OPEN, MK_PREV_LO, MK_PREV_HI, MK_PREV_OLDEST]) s[m + w] = (s[m + w] + d) | 0;
+    // NEVER AT OR BELOW ZERO (bitcoin-arena kanban #2975, feedback #329): a first price far below the seed's level moved seeded prices
+    // under zero (submitTape keeps every price positive); an offset price is floored at one cent
+    const up = (x) => { const y = (x + d) | 0; return y < 1 ? 1 : y; };
+    for (let i = 0; i < h.length; i++) h[i] = up(h[i]);
+    if (st.roundTape) for (let i = 0; i < st.roundTape.length; i++) st.roundTape[i] = up(st.roundTape[i]);
+    for (const w of [MK_OPEN, MK_PREV_LO, MK_PREV_HI, MK_PREV_OLDEST]) s[m + w] = up(s[m + w]);
   }
   // the scale and the west edge the chart is drawn with at this tick, read BEFORE the tape moves, are what the next 300
   // ticks lerp from (§4.15 rescale and glide): read after it, the new sample was already in the window at a full lerp
