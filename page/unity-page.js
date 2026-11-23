@@ -382,7 +382,8 @@ const NB_NEXT = nbHost('arena-bal-split', 'after'), NB_WARN = nbHost('arena-lobb
       // 90 s slot. Until the next round is listed the box says it is joining it, with no number; once listed, it counts to
       // that round's own start - the number its lobby row shows.
       const runOverAt = Date.now();
-      const next = window.ARENA_NEXT = { state: 'looking', runOverAt, startMs: NaN, playedStartMs: Number(played.startTimeMs) };
+      // the played round's stake: a paid next round says it stakes again (bitcoin-arena kanban #2940)
+      const next = window.ARENA_NEXT = { state: 'looking', runOverAt, startMs: NaN, playedStartMs: Number(played.startTimeMs), stakeMsat: String(played.stakeMsat || 0) };
       // LOOKED FOR UNTIL IT IS LISTED: a series lists round i+1 long before; a launcher that opens its next round later
       // (the Daily: about a minute before the current round's entry closes) lists it later - measured 65 s after a run.
       // Given up only when the player joins something else from the lobby, or after 10 minutes.
@@ -438,13 +439,13 @@ const NB_NEXT = nbHost('arena-bal-split', 'after'), NB_WARN = nbHost('arena-lobb
       const waiting = n && window.ARENA_CONTINUE !== false && (n.state === 'looking'
         || (n.state === 'joining' && j && j.round === n.round && j.state === 'joining'));
       if (waiting) {
-        v = ARENACLIENT.nextRoundView({ runOverMs: n.runOverAt, nextStartMs: n.startMs, nowMs: Date.now() });
+        v = ARENACLIENT.nextRoundView({ runOverMs: n.runOverAt, nextStartMs: n.startMs, nowMs: Date.now(), stakeMsat: n.stakeMsat });
         // not listed yet: the words without a number, beside exit game - never a number that is not the round's start
         // (kanban #827, the owner 2026-10-31: "Joining next round .. in X seconds fehlt"): the rounds stand on a 90 s grid from the one just played, so its next step is a round's start
         if (n.state === 'looking' && v.show === 'lobby') {
           const step = 90000, from = n.playedStartMs;
-          v = Number.isFinite(from) ? ARENACLIENT.nextRoundView({ runOverMs: n.runOverAt, nextStartMs: from + Math.ceil((Date.now() - from + 1) / step) * step, nowMs: Date.now() })
-            : { show: 'countdown', line: 'joining next round', exit: ARENACLIENT.EXIT_GAME };
+          v = Number.isFinite(from) ? ARENACLIENT.nextRoundView({ runOverMs: n.runOverAt, nextStartMs: from + Math.ceil((Date.now() - from + 1) / step) * step, nowMs: Date.now(), stakeMsat: n.stakeMsat })
+            : { show: 'countdown', line: 'joining next round' + (ARENACLIENT.costsAgain ? ARENACLIENT.costsAgain(n.stakeMsat) : ''), exit: ARENACLIENT.EXIT_GAME };
         }
         // AT ONCE, beside the ending Unity keeps up (COUNTDOWN-NOW-2209): no waiting for the card
       }
